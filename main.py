@@ -73,10 +73,13 @@ import  spark_parse
 
 #
 a=spark_parse.Spark()
-a.company_inn=7710699964
+inn_list=[7710699964,7707083893,2310031475,5036045205,]
+for inn in inn_list:
+    a.company_inn=inn
 #guid= a.get_guid(7710699964)
 #print(guid)
-a.get_company_info()
+    print(a.accountant_report())
+
 
 
 #a.company_inn=7707083893

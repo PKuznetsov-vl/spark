@@ -78,6 +78,16 @@ class Spark:
             return "Error: " + str(e)
         return report_file.content
 
+    def accountant_report(self)-> [str,str]:
+        """Бухгалтерская отчетность
+         Returns: tuple of отчет росстата, отчет фнс"""
+
+        rosstat_report = self.sess.get("https://spark-interfax.ru/sapi/financialreports/periods?"
+                        "CompanyKey=%7BCompanyGuid%3ACDF0F6BA74A94D8EBD174BD9C10B8491%7D")
+        fns_report = self.sess.get("https://spark-interfax.ru/sapi/financialreports?SourceId=Fns&PeriodId=555&"
+                        "CompanyKey=%7BCompanyGuid%3ACDF0F6BA74A94D8EBD174BD9C10B8491%7D&ReportType=None")
+        return rosstat_report.json(),fns_report.json()
+
     def logout(self) -> None:
         """logout"""
         print('logout')
