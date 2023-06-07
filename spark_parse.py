@@ -2,6 +2,9 @@ from functools import cached_property, lru_cache
 import atexit
 
 import requests
+import warnings
+
+warnings.simplefilter("ignore")
 
 
 class Spark:
@@ -13,10 +16,14 @@ class Spark:
                                                'RememberMe': (None, 'true')}, verify=False)
 
         if login_response.status_code == 401:
+            print('captcha needed')
+            # todo captcha recognition
             captcha = self.sess.get('https://spark-interfax.ru/sapi/captcha?format=json', verify=False)
             text_captcha = captcha.json()['Text']
             img_captcha = captcha.json()['Image']
-        print(login_response.text)
+        elif login_response.status_code != 200 or 401:
+           raise requests.exceptions.HTTPError(login_response.json()['ResponseStatus']['Message'])
+
         self.company_inn = None
         atexit.register(self.logout)
 
@@ -78,15 +85,15 @@ class Spark:
             return "Error: " + str(e)
         return report_file.content
 
-    def accountant_report(self)-> [str,str]:
+    def accountant_report(self) -> [str, str]:
         """Бухгалтерская отчетность
          Returns: tuple of отчет росстата, отчет фнс"""
 
         rosstat_report = self.sess.get("https://spark-interfax.ru/sapi/financialreports/periods?"
-                        "CompanyKey=%7BCompanyGuid%3ACDF0F6BA74A94D8EBD174BD9C10B8491%7D")
+                                       f"CompanyKey=%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D")
         fns_report = self.sess.get("https://spark-interfax.ru/sapi/financialreports?SourceId=Fns&PeriodId=555&"
-                        "CompanyKey=%7BCompanyGuid%3ACDF0F6BA74A94D8EBD174BD9C10B8491%7D&ReportType=None")
-        return rosstat_report.json(),fns_report.json()
+                                   f"CompanyKey=%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D&ReportType=None")
+        return rosstat_report.json(), fns_report.json()
 
     def logout(self) -> None:
         """logout"""
