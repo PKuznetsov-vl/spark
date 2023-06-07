@@ -2,23 +2,32 @@ from functools import cached_property, lru_cache
 import atexit
 
 import requests
+import warnings
+
+warnings.simplefilter("ignore")
 
 
 class Spark:
     def __init__(self):
         """login"""
+        self.company_inn = None
+        atexit.register(self.logout)
         self.sess = requests.Session()
         login_response = self.sess.post('https://spark-interfax.ru/system/sapi/auth/credentials?format=json&s_up=ssl',
                                         files={'UserName': (None, 'skoltech8'), 'Password': (None, 'dEB-hF9-Kzu-W37'),
                                                'RememberMe': (None, 'true')}, verify=False)
-
-        if login_response.status_code == 401:
-            captcha = self.sess.get('https://spark-interfax.ru/sapi/captcha?format=json', verify=False)
-            text_captcha = captcha.json()['Text']
-            img_captcha = captcha.json()['Image']
-        print(login_response.text)
-        self.company_inn = None
-        atexit.register(self.logout)
+        print(login_response.json())
+        # todo captcha recognition
+        # if login_response.status_code == 401:
+        #     print('captcha needed')
+        #
+        #
+        #     captcha = self.sess.get('https://spark-interfax.ru/sapi/captcha?format=json', verify=False)
+        #     text_captcha = captcha.json()['Text']
+        #     img_captcha = captcha.json()['Image']
+        # raise requests.exceptions.HTTPError(login_response.json()['ResponseStatus']['Message'])
+        if login_response.status_code != 200:
+            raise requests.exceptions.HTTPError(login_response.json()['ResponseStatus']['Message'])
 
     # def capcha(self):
     #
@@ -52,7 +61,7 @@ class Spark:
             return "Error: " + str(e)
         return resp.json()
 
-    def get_fin_res(self) -> str:
+    def get_fin_report(self) -> str:
         """Отчет о финансовых результатах
              Returns: json object"""
         resp = self.sess.get(
@@ -64,9 +73,34 @@ class Spark:
             return "Error: " + str(e)
         return resp.json()
 
+    def get_balance_report(self)->str:
+        """ Баланс
+         Returns: json object"""
+        resp = self.sess.get(
+            "https://spark-interfax.ru/sapi/databalance?CompanyKey=%7BCompanyGuid%3ACDF0F6BA74A94D8EBD174BD9C10B8491%7D&"
+            "StatementType=Form1&CurrencyType=RUB&Multiplier=1")
+        try:
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            return "Error: " + str(e)
+        return resp.json()
+
+    def get_cash_flow(self)->str:
+        """Отчет о движении денежных средств
+         Returns: json object"""
+        resp = self.sess.get(
+            "https://spark-interfax.ru/sapi/databalance?CompanyKey=%7BCompanyGuid%3ACDF0F6BA74A94D8EBD174BD9C10B8491%7D&"
+            "StatementType=Form4&CurrencyType=RUB&Multiplier=1")
+        try:
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            return "Error: " + str(e)
+        return resp.json()
+
     def get_xlsx(self) -> str | bytes:
-        """Отчет о финансах в формате xlsx
-        Returns: json object"""
+        """Отчет о финансах в формате xlsx, включает в себя Отчет о движении денежных средств,баланс,
+        Отчет о финансовых результатах
+        Returns: bytes object"""
         report_id = self.sess.post("https://spark-interfax.ru/sapi/sourcedata/export/xlsx",
                                    json={"CompanyKey": {"CompanyGuid": {self.get_guid(self.company_inn)}},
                                          "CurrencyType": "RUB", "Scale": 1}).json()['ReportId']
@@ -78,15 +112,15 @@ class Spark:
             return "Error: " + str(e)
         return report_file.content
 
-    def accountant_report(self)-> [str,str]:
+    def accountant_report(self) -> [str, str]:
         """Бухгалтерская отчетность
          Returns: tuple of отчет росстата, отчет фнс"""
 
         rosstat_report = self.sess.get("https://spark-interfax.ru/sapi/financialreports/periods?"
-                        "CompanyKey=%7BCompanyGuid%3ACDF0F6BA74A94D8EBD174BD9C10B8491%7D")
+                                       f"CompanyKey=%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D")
         fns_report = self.sess.get("https://spark-interfax.ru/sapi/financialreports?SourceId=Fns&PeriodId=555&"
-                        "CompanyKey=%7BCompanyGuid%3ACDF0F6BA74A94D8EBD174BD9C10B8491%7D&ReportType=None")
-        return rosstat_report.json(),fns_report.json()
+                                   f"CompanyKey=%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D&ReportType=None")
+        return rosstat_report.json(), fns_report.json()
 
     def logout(self) -> None:
         """logout"""
