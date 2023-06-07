@@ -1,10 +1,4 @@
-import requests
 import spark_parse
-
-# TODO неуверенный поиск
-# https://spark-interfax.ru/system/sapi/companylist/search?&pageSize=30&pageNo=1&query=
-# {"Unknown":"сбер"}&type=Unknown&filter={Country:RUS,OkvedCodes:[],CompanySize:Unknown,RegionCodes:[],
-# IsActual:Any,EntityType:Any}&bounds=&documentType=None&ObjectType=Search
 
 if __name__ == '__main__':
     # example

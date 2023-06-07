@@ -126,3 +126,8 @@ class Spark:
         """logout"""
         print('logout')
         self.sess.post('https://spark-interfax.ru/sapi/auth/logout?continue=/', verify=False)
+
+    # TODO неуверенный поиск
+    # https://spark-interfax.ru/system/sapi/companylist/search?&pageSize=30&pageNo=1&query=
+    # {"Unknown":"сбер"}&type=Unknown&filter={Country:RUS,OkvedCodes:[],CompanySize:Unknown,RegionCodes:[],
+    # IsActual:Any,EntityType:Any}&bounds=&documentType=None&ObjectType=Search
