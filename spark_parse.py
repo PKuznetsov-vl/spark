@@ -10,22 +10,26 @@ warnings.simplefilter("ignore")
 class Spark:
     def __init__(self):
         """login"""
+        self.company_inn = None
+        atexit.register(self.logout)
         self.sess = requests.Session()
         login_response = self.sess.post('https://spark-interfax.ru/system/sapi/auth/credentials?format=json&s_up=ssl',
                                         files={'UserName': (None, 'skoltech8'), 'Password': (None, 'dEB-hF9-Kzu-W37'),
                                                'RememberMe': (None, 'true')}, verify=False)
+        print(login_response.json())
+        # todo captcha recognition
+        # if login_response.status_code == 401:
+        #     print('captcha needed')
+        #
+        #
+        #     captcha = self.sess.get('https://spark-interfax.ru/sapi/captcha?format=json', verify=False)
+        #     text_captcha = captcha.json()['Text']
+        #     img_captcha = captcha.json()['Image']
+            #raise requests.exceptions.HTTPError(login_response.json()['ResponseStatus']['Message'])
+        if login_response.status_code != 200 :
+            raise requests.exceptions.HTTPError(login_response.json()['ResponseStatus']['Message'])
 
-        if login_response.status_code == 401:
-            print('captcha needed')
-            # todo captcha recognition
-            captcha = self.sess.get('https://spark-interfax.ru/sapi/captcha?format=json', verify=False)
-            text_captcha = captcha.json()['Text']
-            img_captcha = captcha.json()['Image']
-        elif login_response.status_code != 200 or 401:
-           raise requests.exceptions.HTTPError(login_response.json()['ResponseStatus']['Message'])
 
-        self.company_inn = None
-        atexit.register(self.logout)
 
     # def capcha(self):
     #
