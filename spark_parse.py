@@ -25,11 +25,9 @@ class Spark:
         #     captcha = self.sess.get('https://spark-interfax.ru/sapi/captcha?format=json', verify=False)
         #     text_captcha = captcha.json()['Text']
         #     img_captcha = captcha.json()['Image']
-            #raise requests.exceptions.HTTPError(login_response.json()['ResponseStatus']['Message'])
-        if login_response.status_code != 200 :
+        # raise requests.exceptions.HTTPError(login_response.json()['ResponseStatus']['Message'])
+        if login_response.status_code != 200:
             raise requests.exceptions.HTTPError(login_response.json()['ResponseStatus']['Message'])
-
-
 
     # def capcha(self):
     #
@@ -63,7 +61,7 @@ class Spark:
             return "Error: " + str(e)
         return resp.json()
 
-    def get_fin_res(self) -> str:
+    def get_fin_report(self) -> str:
         """Отчет о финансовых результатах
              Returns: json object"""
         resp = self.sess.get(
@@ -75,9 +73,34 @@ class Spark:
             return "Error: " + str(e)
         return resp.json()
 
+    def get_balance_report(self)->str:
+        """ Баланс
+         Returns: json object"""
+        resp = self.sess.get(
+            "https://spark-interfax.ru/sapi/databalance?CompanyKey=%7BCompanyGuid%3ACDF0F6BA74A94D8EBD174BD9C10B8491%7D&"
+            "StatementType=Form1&CurrencyType=RUB&Multiplier=1")
+        try:
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            return "Error: " + str(e)
+        return resp.json()
+
+    def get_cash_flow(self)->str:
+        """Отчет о движении денежных средств
+         Returns: json object"""
+        resp = self.sess.get(
+            "https://spark-interfax.ru/sapi/databalance?CompanyKey=%7BCompanyGuid%3ACDF0F6BA74A94D8EBD174BD9C10B8491%7D&"
+            "StatementType=Form4&CurrencyType=RUB&Multiplier=1")
+        try:
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            return "Error: " + str(e)
+        return resp.json()
+
     def get_xlsx(self) -> str | bytes:
-        """Отчет о финансах в формате xlsx
-        Returns: json object"""
+        """Отчет о финансах в формате xlsx, включает в себя Отчет о движении денежных средств,баланс,
+        Отчет о финансовых результатах
+        Returns: bytes object"""
         report_id = self.sess.post("https://spark-interfax.ru/sapi/sourcedata/export/xlsx",
                                    json={"CompanyKey": {"CompanyGuid": {self.get_guid(self.company_inn)}},
                                          "CurrencyType": "RUB", "Scale": 1}).json()['ReportId']
