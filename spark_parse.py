@@ -1,6 +1,5 @@
 from functools import cached_property, lru_cache
 import atexit
-
 import requests
 import warnings
 
@@ -8,7 +7,12 @@ warnings.simplefilter("ignore")
 
 
 class Spark:
+    __slots__ = ('company_inn', 'sess')
+
     def __init__(self):
+
+
+
         """login"""
         self.company_inn = None
         atexit.register(self.logout)
@@ -37,7 +41,7 @@ class Spark:
     @lru_cache(32)
     def get_guid(self, inn) -> str:
         """Поиск и выборка  comapny GUID
-         Returns: company GUID"""
+         :return: company GUID"""
         resp = self.sess.get(
             f'https://spark-interfax.ru/sapi/companylist/autocomplete/?'
             f'query={inn}&type=Unknown&Country=RUS', verify=False)
@@ -45,62 +49,62 @@ class Spark:
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            return "Error: " + str(e)
+            return f"Error: {e}"
         return resp.json()[0]['DirectLink']['Guid']
 
     # 7710699964 CDF0F6BA74A94D8EBD174BD9C10B8491
     def get_company_info(self) -> str:
         """Краткое инфо о компании
-            Returns: json object"""
+            :return: json object"""
         resp = self.sess.get(
             f'https://spark-interfax.ru/sapi/company?CompanyKey={{CompanyGuid:{self.get_guid(self.company_inn)}}}',
             verify=False)
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            return "Error: " + str(e)
+            return f"Error: {e}"
         return resp.json()
 
     def get_fin_report(self) -> str:
         """Отчет о финансовых результатах
-             Returns: json object"""
+             :return: json object"""
         resp = self.sess.get(
             f"https://spark-interfax.ru/sapi/databalance?CompanyKey={{CompanyGuid:{self.get_guid(self.company_inn)}}}&"
             "StatementType=Form2&CurrencyType=RUB&Multiplier=1")
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            return "Error: " + str(e)
+            return f"Error: {e}"
         return resp.json()
 
     def get_balance_report(self)->str:
         """ Баланс
-         Returns: json object"""
+         :return: json object"""
         resp = self.sess.get(
             "https://spark-interfax.ru/sapi/databalance?CompanyKey=%7BCompanyGuid%3ACDF0F6BA74A94D8EBD174BD9C10B8491%7D&"
             "StatementType=Form1&CurrencyType=RUB&Multiplier=1")
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            return "Error: " + str(e)
+            return f"Error: {e}"
         return resp.json()
 
     def get_cash_flow(self)->str:
         """Отчет о движении денежных средств
-         Returns: json object"""
+         :return: json object"""
         resp = self.sess.get(
             "https://spark-interfax.ru/sapi/databalance?CompanyKey=%7BCompanyGuid%3ACDF0F6BA74A94D8EBD174BD9C10B8491%7D&"
             "StatementType=Form4&CurrencyType=RUB&Multiplier=1")
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            return "Error: " + str(e)
+            return f"Error: {e}"
         return resp.json()
 
     def get_xlsx(self) -> str | bytes:
         """Отчет о финансах в формате xlsx, включает в себя Отчет о движении денежных средств,баланс,
         Отчет о финансовых результатах
-        Returns: bytes object"""
+        :return: bytes object"""
         report_id = self.sess.post("https://spark-interfax.ru/sapi/sourcedata/export/xlsx",
                                    json={"CompanyKey": {"CompanyGuid": {self.get_guid(self.company_inn)}},
                                          "CurrencyType": "RUB", "Scale": 1}).json()['ReportId']
@@ -109,12 +113,12 @@ class Spark:
             report_id.raise_for_status()
             report_file.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            return "Error: " + str(e)
+            return f"Error: {e}"
         return report_file.content
 
     def accountant_report(self) -> [str, str]:
         """Бухгалтерская отчетность
-         Returns: tuple of отчет росстата, отчет фнс"""
+         :return: tuple of отчет росстата, отчет фнс"""
 
         rosstat_report = self.sess.get("https://spark-interfax.ru/sapi/financialreports/periods?"
                                        f"CompanyKey=%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D")
