@@ -10,10 +10,15 @@ class Spark:
     __slots__ = ('company_inn', 'sess')
 
     def __init__(self):
+        """
+                Initialize the Caiso object with a session and nodename and login .
 
+                :param sess: Requests session object (optional)
+                :type sess: requests.Session, optional
+                :param nodename: Name of the node (optional)
+                :type nodename: str, optional
 
-
-        """login"""
+        """
         self.company_inn = None
         atexit.register(self.logout)
         self.sess = requests.Session()
