@@ -1,7 +1,10 @@
+import base64
+import io
 from functools import cached_property, lru_cache
 import atexit
 import requests
 import warnings
+from PIL import Image
 
 warnings.simplefilter("ignore")
 
@@ -22,26 +25,38 @@ class Spark:
         self.company_inn = None
         atexit.register(self.logout)
         self.sess = requests.Session()
-        login_response = self.sess.post('https://spark-interfax.ru/system/sapi/auth/credentials?format=json&s_up=ssl',
-                                        files={'UserName': (None, 'skoltech8'), 'Password': (None, 'dEB-hF9-Kzu-W37'),
-                                               'RememberMe': (None, 'true')}, verify=False)
-        print(login_response.json())
-        # todo captcha recognition
-        # if login_response.status_code == 401:
-        #     print('captcha needed')
-        #
-        #
-        #     captcha = self.sess.get('https://spark-interfax.ru/sapi/captcha?format=json', verify=False)
-        #     text_captcha = captcha.json()['Text']
-        #     img_captcha = captcha.json()['Image']
-        # raise requests.exceptions.HTTPError(login_response.json()['ResponseStatus']['Message'])
-        if login_response.status_code != 200:
+
+        login_response = self.__login()
+        if login_response.status_code == 401:
+            print('captcha needed')
+            text_captcha,img_text=self.__captcha()
+            self.__login(text_captcha,img_text)
+        if (login_response.status_code != 200) and  (login_response.status_code !=401 ):
             raise requests.exceptions.HTTPError(login_response.json()['ResponseStatus']['Message'])
 
-    # def capcha(self):
-    #
-    # Captcha =nkr0+2qaZhnAAz1v9lJPDMlAfMp+RUNw
-    # UserCaptcha = 33n49b3i
+    def __login(self,captcha='',user_captcha=''):
+        login_response = self.sess.post('https://spark-interfax.ru/system/sapi/auth/credentials?format=json&s_up=ssl',
+                                        files={'UserName': (None, 'skoltech8'), 'Password': (None, 'dEB-hF9-Kzu-W37'),
+                                               'RememberMe': (None, 'false'),'Captcha':(None, captcha),
+                                               'UserCaptcha':(None, user_captcha)}, verify=False)
+
+        return login_response
+
+
+    def __captcha(self):
+        captcha = self.sess.get('https://spark-interfax.ru/sapi/captcha?format=json', verify=False)
+        try:
+            captcha.raise_for_status()
+            text_captcha = captcha.json()['Text']
+            img_captcha = io.BytesIO(base64.b64decode(captcha.json()['Image']))
+
+            im = Image.open(img_captcha)
+            im.show()
+            img_text = input('input captcha text here: ')
+            return text_captcha, img_text
+        except requests.exceptions.HTTPError as e:
+            raise f"Error: {e}"
+
 
     @lru_cache(32)
     def get_guid(self, inn) -> str:
@@ -54,7 +69,7 @@ class Spark:
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            return f"Error: {e}"
+            raise Exception(f"Error: {e}")
         return resp.json()[0]['DirectLink']['Guid']
 
     # 7710699964 CDF0F6BA74A94D8EBD174BD9C10B8491
@@ -67,7 +82,7 @@ class Spark:
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            return f"Error: {e}"
+            raise Exception(f"Error: {e}")
         return resp.json()
 
     def get_fin_report(self) -> str:
@@ -79,10 +94,10 @@ class Spark:
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            return f"Error: {e}"
+            raise Exception(f"Error: {e}")
         return resp.json()
 
-    def get_balance_report(self)->str:
+    def get_balance_report(self) -> str:
         """ Баланс
          :return: json object"""
         resp = self.sess.get(
@@ -91,10 +106,10 @@ class Spark:
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            return f"Error: {e}"
+            raise Exception(f"Error: {e}")
         return resp.json()
 
-    def get_cash_flow(self)->str:
+    def get_cash_flow(self) -> str:
         """Отчет о движении денежных средств
          :return: json object"""
         resp = self.sess.get(
@@ -103,7 +118,7 @@ class Spark:
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            return f"Error: {e}"
+            raise Exception(f"Error: {e}")
         return resp.json()
 
     def get_xlsx(self) -> str | bytes:
@@ -111,14 +126,16 @@ class Spark:
         Отчет о финансовых результатах
         :return: bytes object"""
         report_id = self.sess.post("https://spark-interfax.ru/sapi/sourcedata/export/xlsx",
-                                   json={"CompanyKey": {"CompanyGuid": {self.get_guid(self.company_inn)}},
-                                         "CurrencyType": "RUB", "Scale": 1}).json()['ReportId']
-        report_file = self.sess.get(f'https://spark-interfax.ru/sapi/reporting/report?ReportId={report_id}', timeout=30)
+                                   json={"CompanyKey": {"CompanyGuid": f"{self.get_guid(self.company_inn)}"},
+                                         "CurrencyType": "RUB", "Scale": 1})
+        print(report_id)
+        report_file = self.sess.get(f'https://spark-interfax.ru/sapi/reporting/report?ReportId='
+                                    f'{report_id.json()["ReportId"]}', timeout=30)
         try:
             report_id.raise_for_status()
             report_file.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            return f"Error: {e}"
+            raise f"Error: {e}"
         return report_file.content
 
     def accountant_report(self) -> [str, str]:

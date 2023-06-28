@@ -1,10 +1,20 @@
+import io
+import json
+import openpyxl as opx
+import pandas as pd
+
 import spark_parse
+
+def get_guid(inn):
+    return  inn
 
 if __name__ == '__main__':
     # example
     a = spark_parse.Spark()
-    inn_list = [7710699964, 7707083893, 2310031475, 5036045205]
+    inn_list = [7710699964]
     for inn in inn_list:
         a.company_inn = inn
 
         print(a.accountant_report())
+        df = pd.read_excel( a.get_xlsx())
+
