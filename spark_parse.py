@@ -10,18 +10,14 @@ warnings.simplefilter("ignore")
 
 
 class Spark:
-    __slots__ = ('company_inn', 'sess')
+    __slots__ = ("__username", "__password", "company_inn", "sess")
 
     def __init__(self):
         """
-                Initialize the Caiso object with a session and nodename and login .
-
-                :param sess: Requests session object (optional)
-                :type sess: requests.Session, optional
-                :param nodename: Name of the node (optional)
-                :type nodename: str, optional
-
+                Initialize the spark object with a session and pass and login .
         """
+        self.__username = 'skoltech8'
+        self.__password = 'dEB-hF9-Kzu-W37'
         self.company_inn = None
         atexit.register(self.logout)
         self.sess = requests.Session()
@@ -29,23 +25,23 @@ class Spark:
         login_response = self.__login()
         if login_response.status_code == 401:
             print('captcha needed')
-            text_captcha,img_text=self.__captcha()
-            self.__login(text_captcha,img_text)
-        if (login_response.status_code != 200) and  (login_response.status_code !=401 ):
+            text_captcha, img_text = self.__captcha()
+            self.__login(text_captcha, img_text)
+        if (login_response.status_code != 200) and (login_response.status_code != 401):
             raise requests.exceptions.HTTPError(login_response.json()['ResponseStatus']['Message'])
 
-    def __login(self,captcha='',user_captcha=''):
+    def __login(self, captcha='', user_captcha=''):
         login_response = self.sess.post('https://spark-interfax.ru/system/sapi/auth/credentials?format=json&s_up=ssl',
                                         files={'UserName': (None, 'skoltech8'), 'Password': (None, 'dEB-hF9-Kzu-W37'),
-                                               'RememberMe': (None, 'false'),'Captcha':(None, captcha),
-                                               'UserCaptcha':(None, user_captcha)}, verify=False)
+                                               'RememberMe': (None, 'false'), 'Captcha': (None, captcha),
+                                               'UserCaptcha': (None, user_captcha)}, verify=False)
 
         return login_response
 
-
     def __captcha(self):
-        captcha = self.sess.get('https://spark-interfax.ru/sapi/captcha?format=json', verify=False)
+
         try:
+            captcha = self.sess.get('https://spark-interfax.ru/sapi/captcha?format=json', verify=False)
             captcha.raise_for_status()
             text_captcha = captcha.json()['Text']
             img_captcha = io.BytesIO(base64.b64decode(captcha.json()['Image']))
@@ -58,16 +54,16 @@ class Spark:
         except requests.exceptions.HTTPError as e:
             raise f"Error: {e}"
 
-
     @lru_cache(32)
     def get_guid(self, inn) -> str:
         """Поиск и выборка  comapny GUID
          :return: company GUID"""
-        resp = self.sess.get(
-            f'https://spark-interfax.ru/sapi/companylist/autocomplete/?'
-            f'query={inn}&type=Unknown&Country=RUS', verify=False)
-        print('get guid')
+
         try:
+            resp = self.sess.get(
+                f'https://spark-interfax.ru/sapi/companylist/autocomplete/?'
+                f'query={inn}&type=Unknown&Country=RUS', verify=False)
+            print('get guid')
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
             raise Exception(f"Error: {e}")
@@ -77,10 +73,11 @@ class Spark:
     def get_company_info(self) -> str:
         """Краткое инфо о компании
             :return: json object"""
-        resp = self.sess.get(
-            f'https://spark-interfax.ru/sapi/company?CompanyKey={{CompanyGuid:{self.get_guid(self.company_inn)}}}',
-            verify=False)
+
         try:
+            resp = self.sess.get(
+                f'https://spark-interfax.ru/sapi/company?CompanyKey={{CompanyGuid:{self.get_guid(self.company_inn)}}}',
+                verify=False)
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
             raise Exception(f"Error: {e}")
@@ -101,10 +98,11 @@ class Spark:
     def get_balance_report(self) -> str:
         """ Баланс
          :return: json object"""
-        resp = self.sess.get(
-            "https://spark-interfax.ru/sapi/databalance?CompanyKey=%7BCompanyGuid%3ACDF0F6BA74A94D8EBD174BD9C10B8491%7D&"
-            "StatementType=Form1&CurrencyType=RUB&Multiplier=1")
         try:
+            resp = self.sess.get(
+                "https://spark-interfax.ru/sapi/databalance?CompanyKey=%7BCompanyGuid%3ACDF0F6BA74A94D8EBD174BD9C10B8491%7D&"
+                "StatementType=Form1&CurrencyType=RUB&Multiplier=1")
+
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
             raise Exception(f"Error: {e}")
@@ -113,10 +111,11 @@ class Spark:
     def get_cash_flow(self) -> str:
         """Отчет о движении денежных средств
          :return: json object"""
-        resp = self.sess.get(
-            "https://spark-interfax.ru/sapi/databalance?CompanyKey=%7BCompanyGuid%3ACDF0F6BA74A94D8EBD174BD9C10B8491%7D&"
-            "StatementType=Form4&CurrencyType=RUB&Multiplier=1")
         try:
+            resp = self.sess.get(
+                "https://spark-interfax.ru/sapi/databalance?CompanyKey=%7BCompanyGuid%3ACDF0F6BA74A94D8EBD174BD9C10B8491%7D&"
+                "StatementType=Form4&CurrencyType=RUB&Multiplier=1")
+
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
             raise Exception(f"Error: {e}")
@@ -126,17 +125,18 @@ class Spark:
         """Отчет о финансах в формате xlsx, включает в себя Отчет о движении денежных средств,баланс,
         Отчет о финансовых результатах
         :return: bytes object"""
-        report_id = self.sess.post("https://spark-interfax.ru/sapi/sourcedata/export/xlsx",
-                                   json={"CompanyKey": {"CompanyGuid": f"{self.get_guid(self.company_inn)}"},
-                                         "CurrencyType": "RUB", "Scale": 1})
-        print(report_id)
-        report_file = self.sess.get(f'https://spark-interfax.ru/sapi/reporting/report?ReportId='
-                                    f'{report_id.json()["ReportId"]}', timeout=30)
         try:
+            report_id = self.sess.post("https://spark-interfax.ru/sapi/sourcedata/export/xlsx",
+                                       json={"CompanyKey": {"CompanyGuid": f"{self.get_guid(self.company_inn)}"},
+                                             "CurrencyType": "RUB", "Scale": 1})
+            print(report_id)
+            report_file = self.sess.get(f'https://spark-interfax.ru/sapi/reporting/report?ReportId='
+                                        f'{report_id.json()["ReportId"]}', timeout=30)
+
             report_id.raise_for_status()
             report_file.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            raise f"Error: {e}"
+            raise Exception(f"Error: {e}")
         return report_file.content
 
     def accountant_report(self) -> [str, str]:
@@ -153,6 +153,17 @@ class Spark:
         """logout"""
         print('logout')
         self.sess.post('https://spark-interfax.ru/sapi/auth/logout?continue=/', verify=False)
+
+    def get_shareholders(self) -> str:
+        """Учредители (участники)
+         Returns: json object"""
+        try:
+            shareholders = self.sess.get(
+                f"https://spark-interfax.ru/sapi/card/shareholders/egrul/current?CompanyKey=%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D")
+            shareholders.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise Exception(f"Error: {e}")
+        return shareholders.json()
 
     # TODO неуверенный поиск
     # https://spark-interfax.ru/system/sapi/companylist/search?&pageSize=30&pageNo=1&query=
