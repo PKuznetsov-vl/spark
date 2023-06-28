@@ -17,4 +17,5 @@ if __name__ == '__main__':
 
         print(a.accountant_report())
         df = pd.read_excel( a.get_xlsx())
+        print(df.head(10))
 

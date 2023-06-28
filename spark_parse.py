@@ -53,6 +53,7 @@ class Spark:
             im = Image.open(img_captcha)
             im.show()
             img_text = input('input captcha text here: ')
+            im.close()
             return text_captcha, img_text
         except requests.exceptions.HTTPError as e:
             raise f"Error: {e}"
