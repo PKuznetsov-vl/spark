@@ -11,11 +11,11 @@ def get_guid(inn):
 if __name__ == '__main__':
     # example
     a = spark_parse.Spark()
-    inn_list = [7710699964]
+    inn_list = [7707083893]
     for inn in inn_list:
         a.company_inn = inn
 
         print(a.accountant_report())
-        df = pd.read_excel( a.get_xlsx())
-        print(df.head(10))
-
+        #df = pd.read_excel( a.get_xlsx())
+        #print(df.head(10))
+        print(a.get_shareholders())

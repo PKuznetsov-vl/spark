@@ -64,6 +64,7 @@ class Spark:
                 f'https://spark-interfax.ru/sapi/companylist/autocomplete/?'
                 f'query={inn}&type=Unknown&Country=RUS', verify=False)
             print('get guid')
+
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
             raise Exception(f"Error: {e}")
@@ -135,9 +136,10 @@ class Spark:
 
             report_id.raise_for_status()
             report_file.raise_for_status()
+            return report_file.content
         except requests.exceptions.HTTPError as e:
-            raise Exception(f"Error: {e}")
-        return report_file.content
+            print(Exception(f"Error: {e}"))
+
 
     def accountant_report(self) -> [str, str]:
         """Бухгалтерская отчетность
@@ -153,18 +155,21 @@ class Spark:
         """logout"""
         print('logout')
         self.sess.post('https://spark-interfax.ru/sapi/auth/logout?continue=/', verify=False)
-
+#fixme returns none
     def get_shareholders(self) -> str:
         """Учредители (участники)
          Returns: json object"""
         try:
             shareholders = self.sess.get(
-                f"https://spark-interfax.ru/sapi/card/shareholders/egrul/current?CompanyKey=%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D")
+                f"https://spark-interfax.ru/sapi/card/shareholders/egrul/current?CompanyKey="
+                f"%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D")
             shareholders.raise_for_status()
         except requests.exceptions.HTTPError as e:
             raise Exception(f"Error: {e}")
         return shareholders.json()
 
+    # TODO cвязи
+    #https://spark-interfax.ru/system/sapi/graph/s3/OwnershipAnalysis?jsconfig=eccn%2Ceti
     # TODO неуверенный поиск
     # https://spark-interfax.ru/system/sapi/companylist/search?&pageSize=30&pageNo=1&query=
     # {"Unknown":"сбер"}&type=Unknown&filter={Country:RUS,OkvedCodes:[],CompanySize:Unknown,RegionCodes:[],
