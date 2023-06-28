@@ -68,9 +68,10 @@ class Spark:
             print('get guid')
 
             resp.raise_for_status()
+            return resp.json()[0]['DirectLink']['Guid']
         except requests.exceptions.HTTPError as e:
             raise Exception(f"Error: {e}")
-        return resp.json()[0]['DirectLink']['Guid']
+
 
     # 7710699964 CDF0F6BA74A94D8EBD174BD9C10B8491
     def get_company_info(self) -> str:
@@ -82,9 +83,10 @@ class Spark:
                 f'https://spark-interfax.ru/sapi/company?CompanyKey={{CompanyGuid:{self.get_guid(self.company_inn)}}}',
                 verify=False)
             resp.raise_for_status()
+            return resp.json()
         except requests.exceptions.HTTPError as e:
             raise Exception(f"Error: {e}")
-        return resp.json()
+
 
     def get_fin_report(self) -> Any | None:
         """Отчет о финансовых результатах
@@ -94,10 +96,11 @@ class Spark:
             "StatementType=Form2&CurrencyType=RUB&Multiplier=1")
         try:
             resp.raise_for_status()
+            return resp.json()
         except requests.exceptions.HTTPError as e:
             print(f"Error: {e}")
             return None
-        return resp.json()
+
 
     def get_balance_report(self) -> Any | None:
         """ Баланс
@@ -108,10 +111,11 @@ class Spark:
                 "StatementType=Form1&CurrencyType=RUB&Multiplier=1")
 
             resp.raise_for_status()
+            return resp.json()
         except requests.exceptions.HTTPError as e:
             print(f"Error: {e}")
             return None
-        return resp.json()
+
 
     def get_cash_flow(self) -> Any | None:
         """Отчет о движении денежных средств
@@ -122,10 +126,11 @@ class Spark:
                 "StatementType=Form4&CurrencyType=RUB&Multiplier=1")
 
             resp.raise_for_status()
+            return resp.json()
         except requests.exceptions.HTTPError as e:
             print(f"Error: {e}")
             return None
-        return resp.json()
+
 
     def get_xlsx(self) -> str | bytes:
         """Отчет о финансах в формате xlsx, включает в себя Отчет о движении денежных средств,баланс,
@@ -150,12 +155,15 @@ class Spark:
     def accountant_report(self) -> [str, str]:
         """Бухгалтерская отчетность
          :return: tuple of отчет росстата, отчет фнс"""
-
-        rosstat_report = self.sess.get("https://spark-interfax.ru/sapi/financialreports/periods?"
-                                       f"CompanyKey=%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D")
-        fns_report = self.sess.get("https://spark-interfax.ru/sapi/financialreports?SourceId=Fns&PeriodId=555&"
-                                   f"CompanyKey=%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D&ReportType=None")
-        return rosstat_report.json(), fns_report.json()
+        try:
+            rosstat_report = self.sess.get("https://spark-interfax.ru/sapi/financialreports/periods?"
+                                           f"CompanyKey=%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D")
+            fns_report = self.sess.get("https://spark-interfax.ru/sapi/financialreports?SourceId=Fns&PeriodId=555&"
+                                       f"CompanyKey=%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D&ReportType=None")
+            return rosstat_report.json(), fns_report.json()
+        except Exception as e:
+            print(f"Error: {e}")
+            return None
 
     def logout(self) -> None:
         """logout"""
@@ -171,10 +179,11 @@ class Spark:
                 f"https://spark-interfax.ru/sapi/card/shareholders/egrul/current?CompanyKey="
                 f"%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D")
             shareholders.raise_for_status()
+            return shareholders.json()
         except requests.exceptions.HTTPError as e:
             print(f"Error: {e}")
             return None
-        return shareholders.json()
+
 
     # TODO cвязи
     # https://spark-interfax.ru/system/sapi/graph/s3/OwnershipAnalysis?jsconfig=eccn%2Ceti
