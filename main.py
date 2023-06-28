@@ -15,6 +15,8 @@ if __name__ == '__main__':
     for inn in inn_list:
         a.company_inn = inn
         print(a.get_cash_flow())
+        print(a.get_fin_report())
+        print(a.get_balance_report())
         print(a.accountant_report())
         #df = pd.read_excel( a.get_xlsx())
         #print(df.head(10))

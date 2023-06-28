@@ -2,6 +2,8 @@ import base64
 import io
 from functools import cached_property, lru_cache
 import atexit
+from typing import Any
+
 import requests
 import warnings
 from PIL import Image
@@ -84,7 +86,7 @@ class Spark:
             raise Exception(f"Error: {e}")
         return resp.json()
 
-    def get_fin_report(self) -> str:
+    def get_fin_report(self) -> Any | None:
         """Отчет о финансовых результатах
              :return: json object"""
         resp = self.sess.get(
@@ -93,10 +95,11 @@ class Spark:
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            raise Exception(f"Error: {e}")
+            print(f"Error: {e}")
+            return None
         return resp.json()
 
-    def get_balance_report(self) -> str:
+    def get_balance_report(self) -> Any | None:
         """ Баланс
          :return: json object"""
         try:
@@ -106,10 +109,11 @@ class Spark:
 
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            raise Exception(f"Error: {e}")
+            print(f"Error: {e}")
+            return None
         return resp.json()
 
-    def get_cash_flow(self) -> str:
+    def get_cash_flow(self) -> Any | None:
         """Отчет о движении денежных средств
          :return: json object"""
         try:
@@ -119,7 +123,8 @@ class Spark:
 
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            raise Exception(f"Error: {e}")
+            print(f"Error: {e}")
+            return None
         return resp.json()
 
     def get_xlsx(self) -> str | bytes:
@@ -140,6 +145,8 @@ class Spark:
         except requests.exceptions.HTTPError as e:
             print(Exception(f"Error: {e}"))
 
+
+
     def accountant_report(self) -> [str, str]:
         """Бухгалтерская отчетность
          :return: tuple of отчет росстата, отчет фнс"""
@@ -156,7 +163,7 @@ class Spark:
         self.sess.post('https://spark-interfax.ru/sapi/auth/logout?continue=/', verify=False)
 
     # fixme returns none
-    def get_shareholders(self) -> str:
+    def get_shareholders(self) -> Any | None:
         """Учредители (участники)
          Returns: json object"""
         try:
@@ -165,7 +172,8 @@ class Spark:
                 f"%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D")
             shareholders.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            raise Exception(f"Error: {e}")
+            print(f"Error: {e}")
+            return None
         return shareholders.json()
 
     # TODO cвязи
