@@ -140,7 +140,6 @@ class Spark:
         except requests.exceptions.HTTPError as e:
             print(Exception(f"Error: {e}"))
 
-
     def accountant_report(self) -> [str, str]:
         """Бухгалтерская отчетность
          :return: tuple of отчет росстата, отчет фнс"""
@@ -155,7 +154,8 @@ class Spark:
         """logout"""
         print('logout')
         self.sess.post('https://spark-interfax.ru/sapi/auth/logout?continue=/', verify=False)
-#fixme returns none
+
+    # fixme returns none
     def get_shareholders(self) -> str:
         """Учредители (участники)
          Returns: json object"""
@@ -169,7 +169,7 @@ class Spark:
         return shareholders.json()
 
     # TODO cвязи
-    #https://spark-interfax.ru/system/sapi/graph/s3/OwnershipAnalysis?jsconfig=eccn%2Ceti
+    # https://spark-interfax.ru/system/sapi/graph/s3/OwnershipAnalysis?jsconfig=eccn%2Ceti
     # TODO неуверенный поиск
     # https://spark-interfax.ru/system/sapi/companylist/search?&pageSize=30&pageNo=1&query=
     # {"Unknown":"сбер"}&type=Unknown&filter={Country:RUS,OkvedCodes:[],CompanySize:Unknown,RegionCodes:[],
