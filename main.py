@@ -11,7 +11,7 @@ def get_guid(inn):
 if __name__ == '__main__':
     # example
     a = spark_parse.Spark()
-    inn_list = [7707083893]
+    inn_list = [7707083893,5032339290,9731092941,7706107510]
     for inn in inn_list:
         a.company_inn = inn
         print(a.get_cash_flow())

@@ -107,7 +107,7 @@ class Spark:
          :return: json object"""
         try:
             resp = self.sess.get(
-                "https://spark-interfax.ru/sapi/databalance?CompanyKey=%7BCompanyGuid%3ACDF0F6BA74A94D8EBD174BD9C10B8491%7D&"
+                f"https://spark-interfax.ru/sapi/databalance?CompanyKey=%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D&"
                 "StatementType=Form1&CurrencyType=RUB&Multiplier=1")
 
             resp.raise_for_status()
@@ -122,7 +122,7 @@ class Spark:
          :return: json object"""
         try:
             resp = self.sess.get(
-                "https://spark-interfax.ru/sapi/databalance?CompanyKey=%7BCompanyGuid%3ACDF0F6BA74A94D8EBD174BD9C10B8491%7D&"
+                f"https://spark-interfax.ru/sapi/databalance?CompanyKey=%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D&"
                 "StatementType=Form4&CurrencyType=RUB&Multiplier=1")
 
             resp.raise_for_status()
