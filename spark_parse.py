@@ -28,12 +28,11 @@ class Spark:
 
         login_response = self.__login()
         if login_response.status_code == 401:
-            # print('Please enter a captcha')
+            print('Please enter a captcha')
             self.logger.warning("Please enter a captcha")
             text_captcha, img_text = self.__captcha()
             self.__login(text_captcha, img_text)
         if (login_response.status_code != 200) and (login_response.status_code != 401):
-            login_error = login_response.json()['ResponseStatus']['Message']
             login_error = f"Login failed Error:{login_response.json()['ResponseStatus']['Message']}"
             self.logger.critical(login_error)
             raise requests.exceptions.HTTPError(login_error)
