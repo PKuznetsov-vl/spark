@@ -184,7 +184,52 @@ class Spark:
             print(f"Error: {e}")
             return None
 
+    def get_pledges(self):
+        """Информация о залогах
+            Returns: json object"""
+        try:
+            pledges = self.sess.get(f"https://spark-interfax.ru/sapi/pledges/summary?CompanyKey="
+                                     f"%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D")
+            pledges.raise_for_status()
+            return pledges.json()
+        except requests.exceptions.HTTPError as e:
+            print(f"Error: {e}")
+            return None
 
+    def get_intellectual_property(self):
+        """Информация о интеллектуальной собственности
+            Returns: json object"""
+        try:
+            iproperty = self.sess.get(f"https://spark-interfax.ru/sapi/intellectualproperty?CompanyKey="
+                                     f"%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D")
+            iproperty.raise_for_status()
+            return iproperty.json()
+        except requests.exceptions.HTTPError as e:
+            print(f"Error: {e}")
+            return None
+
+
+    def get_graphs(self):
+        """График в виде JSON объекта
+            Returns: json object"""
+        try:
+            graph = self.sess.get(f"https://spark-interfax.ru/sapi/finanalysisbankgraphs?CompanyKey="
+                                     f"%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D")
+            graph.raise_for_status()
+            return graph.json()
+        except requests.exceptions.HTTPError as e:
+            print(f"Error: {e}")
+            return None
+
+    def get_coefficients(self):
+        try:
+            coefficients = self.sess.get(f"https://spark-interfax.ru/sapi/coefficients/bank?CompanyKey="
+                                     f"%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D")
+            coefficients.raise_for_status()
+            return coefficients.json()
+        except requests.exceptions.HTTPError as e:
+            print(f"Error: {e}")
+            return None
     # TODO cвязи
     # https://spark-interfax.ru/system/sapi/graph/s3/OwnershipAnalysis?jsconfig=eccn%2Ceti
     # TODO неуверенный поиск
