@@ -3,7 +3,7 @@ import io
 from functools import cached_property, lru_cache
 import atexit
 from typing import Any
-
+import logging
 import requests
 import warnings
 from PIL import Image
@@ -12,7 +12,7 @@ warnings.simplefilter("ignore")
 
 
 class Spark:
-    __slots__ = ("__username", "__password", "company_inn", "sess")
+    __slots__ = ("__username", "__password", "company_inn", "sess", "logger")
 
     def __init__(self):
         """
@@ -23,14 +23,20 @@ class Spark:
         self.company_inn = None
         atexit.register(self.logout)
         self.sess = requests.Session()
+        self.logger = logging.getLogger(__name__)
+        logging.basicConfig(filename='spark_logs.txt', level=logging.INFO)
 
         login_response = self.__login()
         if login_response.status_code == 401:
-            print('captcha needed')
+            # print('Please enter a captcha')
+            self.logger.warning("Please enter a captcha")
             text_captcha, img_text = self.__captcha()
             self.__login(text_captcha, img_text)
         if (login_response.status_code != 200) and (login_response.status_code != 401):
-            raise requests.exceptions.HTTPError(login_response.json()['ResponseStatus']['Message'])
+            login_error = login_response.json()['ResponseStatus']['Message']
+            login_error = f"Login failed Error:{login_response.json()['ResponseStatus']['Message']}"
+            self.logger.critical(login_error)
+            raise requests.exceptions.HTTPError(login_error)
 
     def __login(self, captcha='', user_captcha=''):
         login_response = self.sess.post('https://spark-interfax.ru/system/sapi/auth/credentials?format=json&s_up=ssl',
@@ -54,7 +60,8 @@ class Spark:
             im.close()
             return text_captcha, img_text
         except requests.exceptions.HTTPError as e:
-            raise f"Error: {e}"
+            self.logger.critical(f"Captcha failed Error: {e}")
+            raise f"Captcha failed Error: {e}"
 
     @lru_cache(32)
     def get_guid(self, inn) -> str:
@@ -70,8 +77,8 @@ class Spark:
             resp.raise_for_status()
             return resp.json()[0]['DirectLink']['Guid']
         except requests.exceptions.HTTPError as e:
-            raise Exception(f"Error: {e}")
-
+            self.logger.critical(f"get_guid failed for inn {inn} Error: {e}")
+            raise Exception(f"get_guid failed for inn {inn} Error: {e}")
 
     # 7710699964 CDF0F6BA74A94D8EBD174BD9C10B8491
     def get_company_info(self) -> str:
@@ -85,8 +92,9 @@ class Spark:
             resp.raise_for_status()
             return resp.json()
         except requests.exceptions.HTTPError as e:
-            raise Exception(f"Error: {e}")
-
+            error_info = f"get_company_info failed for company inn: {self.company_inn} Error: {e}"
+            self.logger.critical(error_info)
+            raise Exception(error_info)
 
     def get_fin_report(self) -> Any | None:
         """Отчет о финансовых результатах
@@ -98,9 +106,9 @@ class Spark:
             resp.raise_for_status()
             return resp.json()
         except requests.exceptions.HTTPError as e:
-            print(f"Error: {e}")
+            # print(f"Error: {e}")
+            self.logger.error(f"get_fin_report failed for company inn:{self.company_inn} Error:{e} ")
             return None
-
 
     def get_balance_report(self) -> Any | None:
         """ Баланс
@@ -113,9 +121,9 @@ class Spark:
             resp.raise_for_status()
             return resp.json()
         except requests.exceptions.HTTPError as e:
-            print(f"Error: {e}")
+            # print(f"Error: {e}")
+            self.logger.error(f"get_balance_report failed for company inn:{self.company_inn} Error:{e} ")
             return None
-
 
     def get_cash_flow(self) -> Any | None:
         """Отчет о движении денежных средств
@@ -128,9 +136,9 @@ class Spark:
             resp.raise_for_status()
             return resp.json()
         except requests.exceptions.HTTPError as e:
-            print(f"Error: {e}")
+            # print(f"Error: {e}")
+            self.logger.error(f"get_cash_flow failed for company inn:{self.company_inn} Error:{e}")
             return None
-
 
     def get_xlsx(self) -> str | bytes:
         """Отчет о финансах в формате xlsx, включает в себя Отчет о движении денежных средств,баланс,
@@ -148,9 +156,8 @@ class Spark:
             report_file.raise_for_status()
             return report_file.content
         except requests.exceptions.HTTPError as e:
-            print(Exception(f"Error: {e}"))
-
-
+            # print(Exception(f"Error: {e}"))
+            self.logger.error(f"get_xlsx failed for company inn:{self.company_inn} Error:{e} ")
 
     def accountant_report(self) -> [str, str]:
         """Бухгалтерская отчетность
@@ -162,7 +169,8 @@ class Spark:
                                        f"CompanyKey=%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D&ReportType=None")
             return rosstat_report.json(), fns_report.json()
         except Exception as e:
-            print(f"Error: {e}")
+            # print(f"Error: {e}")
+            self.logger.error(f"accountant_report failed for company inn:{self.company_inn} Error:{e}")
             return None
 
     def logout(self) -> None:
@@ -181,9 +189,9 @@ class Spark:
             shareholders.raise_for_status()
             return shareholders.json()
         except requests.exceptions.HTTPError as e:
-            print(f"Error: {e}")
+            # print(f"Error: {e}")
+            self.logger.error(f"get_shareholders failed for company inn:{self.company_inn} Error:{e} ")
             return None
-
     def get_pledges(self):
         """Информация о залогах
             Returns: json object"""
@@ -193,7 +201,7 @@ class Spark:
             pledges.raise_for_status()
             return pledges.json()
         except requests.exceptions.HTTPError as e:
-            print(f"Error: {e}")
+            self.logger.error(f"get_pledges failed for company inn:{self.company_inn} Error:{e} ")
             return None
 
     def get_intellectual_property(self):
@@ -205,7 +213,8 @@ class Spark:
             iproperty.raise_for_status()
             return iproperty.json()
         except requests.exceptions.HTTPError as e:
-            print(f"Error: {e}")
+            # print(f"Error: {e}")
+            self.logger.error(f"get_intellectual_property failed for company inn:{self.company_inn} Error:{e}")
             return None
 
 
@@ -218,7 +227,8 @@ class Spark:
             graph.raise_for_status()
             return graph.json()
         except requests.exceptions.HTTPError as e:
-            print(f"Error: {e}")
+            # print(f"Error: {e}")
+            self.logger.error(f"get_graphs failed for company inn:{self.company_inn} Error:{e}")
             return None
 
     def get_coefficients(self):
@@ -228,7 +238,8 @@ class Spark:
             coefficients.raise_for_status()
             return coefficients.json()
         except requests.exceptions.HTTPError as e:
-            print(f"Error: {e}")
+            # print(f"Error: {e}")
+            self.logger.error(f"get_coefficients failed for company inn:{self.company_inn} Error:{e}")
             return None
     # TODO cвязи
     # https://spark-interfax.ru/system/sapi/graph/s3/OwnershipAnalysis?jsconfig=eccn%2Ceti
