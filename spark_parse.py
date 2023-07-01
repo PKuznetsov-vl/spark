@@ -16,7 +16,7 @@ class Spark:
 
     def __init__(self):
         """
-                Initialize the spark object with a session and pass and login .
+                Initialize the spark object with a session and pass and login.
         """
         self.__username = 'skoltech8'
         self.__password = 'dEB-hF9-Kzu-W37'
