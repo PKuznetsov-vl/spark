@@ -63,7 +63,7 @@ class Spark:
             raise f"Captcha failed Error: {e}"
 
     @lru_cache(32)
-    def get_guid(self, inn) -> str:
+    def get_guid(self, inn) -> str | None:
         """Поиск и выборка  comapny GUID
          :return: company GUID"""
 
@@ -77,7 +77,7 @@ class Spark:
             return resp.json()[0]['DirectLink']['Guid']
         except requests.exceptions.HTTPError as e:
             self.logger.critical(f"get_guid failed for inn {inn} Error: {e}")
-            raise Exception(f"get_guid failed for inn {inn} Error: {e}")
+            return None
 
     # 7710699964 CDF0F6BA74A94D8EBD174BD9C10B8491
     def get_company_info(self) -> str:
@@ -95,7 +95,7 @@ class Spark:
             self.logger.critical(error_info)
             raise Exception(error_info)
 
-    def get_fin_report(self) -> Any | None:
+    def get_fin_report(self) -> str | None:
         """Отчет о финансовых результатах
              :return: json object"""
         resp = self.sess.get(
@@ -109,7 +109,7 @@ class Spark:
             self.logger.error(f"get_fin_report failed for company inn:{self.company_inn} Error:{e} ")
             return None
 
-    def get_balance_report(self) -> Any | None:
+    def get_balance_report(self) -> str | None:
         """ Баланс
          :return: json object"""
         try:
@@ -178,7 +178,7 @@ class Spark:
         self.sess.post('https://spark-interfax.ru/sapi/auth/logout?continue=/', verify=False)
 
     # fixme returns none
-    def get_shareholders(self) -> Any | None:
+    def get_shareholders(self) -> str | None:
         """Учредители (участники)
          Returns: json object"""
         try:
@@ -191,7 +191,7 @@ class Spark:
             # print(f"Error: {e}")
             self.logger.error(f"get_shareholders failed for company inn:{self.company_inn} Error:{e} ")
             return None
-    def get_pledges(self):
+    def get_pledges(self)-> str | None:
         """Информация о залогах
             Returns: json object"""
         try:
@@ -203,7 +203,7 @@ class Spark:
             self.logger.error(f"get_pledges failed for company inn:{self.company_inn} Error:{e} ")
             return None
 
-    def get_intellectual_property(self):
+    def get_intellectual_property(self)-> str | None:
         """Информация о интеллектуальной собственности
             Returns: json object"""
         try:
@@ -217,7 +217,7 @@ class Spark:
             return None
 
 
-    def get_graphs(self):
+    def get_graphs(self)-> str | None:
         """График в виде JSON объекта
             Returns: json object"""
         try:
@@ -230,7 +230,7 @@ class Spark:
             self.logger.error(f"get_graphs failed for company inn:{self.company_inn} Error:{e}")
             return None
 
-    def get_coefficients(self):
+    def get_coefficients(self)-> str | None:
         try:
             coefficients = self.sess.get(f"https://spark-interfax.ru/sapi/coefficients/bank?CompanyKey="
                                      f"%7BCompanyGuid%3A{self.get_guid(self.company_inn)}%7D")
