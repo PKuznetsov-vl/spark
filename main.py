@@ -1,23 +1,59 @@
 import io
 import json
+import time
+from glob import glob
 import openpyxl as opx
 import pandas as pd
+import os
+from tqdm import tqdm
 
 import spark_parse
 
-def get_guid(inn):
-    return  inn
 
 if __name__ == '__main__':
-    # example
     a = spark_parse.Spark()
-    inn_list = [7707083893,5032339290,9731092941,7706107510]
-    for inn in inn_list:
-        a.company_inn = inn
-        print(a.get_cash_flow())
-        print(a.get_fin_report())
-        print(a.get_balance_report())
-        print(a.accountant_report())
-        #df = pd.read_excel( a.get_xlsx())
-        #print(df.head(10))
+    N = len(glob('data/*'))
+    print(N)
+    names = ['cash_flow_statement',
+             'financial_report',
+             'balance_sheet',
+             'rosstat_report',
+             'fns_report']
+
+    inn_list = pd.read_csv('Org2_filtr_by_income.csv', usecols=['inn'])['inn']
+    inn_list = pd.unique(inn_list)[::-1]
+
+    for inn in tqdm(inn_list[N:]):
+        try:
+            if os.path.isdir(f'data/{inn}'):
+                pass
+            else:
+                os.mkdir(f'data/{inn}')
+
+            # time.sleep(0.5)
+            a.company_inn = inn
+
+            try:
+                resp = a.get_xlsx()
+                if resp is not None:
+                    xlsx = opx.load_workbook(io.BytesIO(resp))
+                    xlsx.save(f'data/{inn}/{inn}_report.xlsx')
+                else:
+                    cfs = a.get_cash_flow()
+                    fin = a.get_fin_report()
+                    bs = a.get_balance_report()
+                    rst, fns = a.accountant_report()
+                    data = [cfs, fin, bs, rst, fns]
+
+                    for i in range(len(names)):
+                        with open(f'data/{inn}/{names[i]}.json', 'w', encoding='utf-8') as f:
+                            json.dump(data[i], f, ensure_ascii=False, indent=4)
+
+            except IndexError:
+                with open('index_error.txt', 'a') as file:
+                    file.write(f'{inn}\n')
+
+        except Exception as e:
+            print(f'Exception: {str(e)}')
+            time.sleep(240)
 
