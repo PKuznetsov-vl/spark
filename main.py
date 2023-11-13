@@ -50,7 +50,7 @@ if __name__ == '__main__':
                             json.dump(data[i], f, ensure_ascii=False, indent=4)
 
             except IndexError:
-                with open('index_error.txt', 'a') as file:
+                with open('old_logs/index_error.txt', 'a') as file:
                     file.write(f'{inn}\n')
 
         except Exception as e:

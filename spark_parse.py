@@ -151,7 +151,7 @@ class Spark:
         except requests.exceptions.HTTPError as e:
             print(Exception(f"Error (xlsx): {e}"))
             if '500' in str(e):
-                with open('error500.txt', 'a') as file:
+                with open('old_logs/error500.txt', 'a') as file:
                     file.write(f'{self.company_inn}\n')
             return None
 
